@@ -32,7 +32,7 @@ def select_sample(df):
 
 def find_peaks_(df, sample):
     peaks, properties = find_peaks(df[sample],
-                                   height=20, 
+                                   height=100, 
                                    prominence=10
                                    )
         
@@ -43,37 +43,62 @@ def find_peaks_(df, sample):
         'peak_center':  df['Size (bp)'].iloc[peaks],
         'peak_end':     df['Size (bp)'].iloc[properties['right_bases']].values
         })
+    
+    peak_df = peak_df[(peak_df['peak_center'] > 74) & (peak_df['peak_center'] < 20001)]
         
     return peak_df, properties
     
 def find_valleys(df_input, df_peaks, sample):
     valleys = []
-    peaks_idx = df_peaks['peak_index'].values
+    
+    y_signal = df_input[sample].values
+    x_size = df_input['Size (bp)'].values
 
-    for i in range(len(peaks_idx) - 1):
-        left = peaks_idx[i]
-        right = peaks_idx[i + 1]
+    # Find valleys between peaks
+    for i in range(len(df_peaks) - 1):
+        left = df_peaks['peak_end'].iloc[i]
+        right = df_peaks['peak_start'].iloc[i + 1]
         
-        # Find valley in original signal
-        segment = df_input[sample].iloc[left:right].values        
-        valley_relative = np.argmin(segment)
+        left_idx = np.searchsorted(x_size, left)
+        right_idx = np.searchsorted(x_size, right)
         
-        valley_index = left + valley_relative
+        if right_idx <= left_idx:
+            valley_index = left_idx
+        else:
+            segment = y_signal[left_idx : right_idx]
+            valley_relative = np.argmin(segment)
+            valley_index = left_idx + valley_relative
+        
         
         valleys.append(valley_index)
         
     valleys = np.array(valleys)
 
     # Define new peak boundaries
-    starts = np.concatenate(([0], valleys))
-    ends = np.concatenate((valleys, [len(df_input) - 1]))
+    starts_corr = []
+    ends_corr = []
+    peaks_idx = df_peaks['peak_index'].values
+    
+    for i in range(len(peaks_idx)):
+        if i == 0:
+            start = df_peaks['peak_start'].iloc[i]  # keep original
+        else:
+            start = x_size[valleys[i - 1]]  # valley before
+            
+        if i == len(peaks_idx) - 1:
+            end = df_peaks['peak_end'].iloc[i]
+        else:
+            end = x_size[valleys[i]]
+            
+        starts_corr.append(start)
+        ends_corr.append(end)
     
     result = pd.DataFrame({
-        'peak_index':       df_peaks['peak_index'].values,
+        'peak_index':       peaks_idx,
         'peak_height':      df_peaks['peak_height'].values,
-        'peak_start_corr':  df_input['Size (bp)'].iloc[starts].values,
-        'peak_center_corr': df_input['Size (bp)'].iloc[peaks_idx].values,
-        'peak_end_corr':    df_input['Size (bp)'].iloc[ends].values
+        'peak_start_corr':  starts_corr,
+        'peak_center_corr': x_size[peaks_idx],
+        'peak_end_corr':    ends_corr
         })
     
     return result, valleys
@@ -104,10 +129,10 @@ print(peaks_df_corr)
 # peak_start = peak_width_results[2]
 # peak_end = peak_width_results[3]
 
-# fig, ax = plt.subplots()
+fig, ax = plt.subplots()
 
-# ax.plot(df_filtered['Size (bp)'], df_filtered[sample], color='black', lw=1)
-# ax.scatter(df_peaks['Size (bp)'], df_peaks[sample], color='red')
+ax.plot(df_raw['Size (bp)'], df_raw[sample], color='black', lw=1)
+ax.scatter(peaks_df['peak_center'], peaks_df['peak_height'], color='red')
 
 
 # # integration
@@ -136,8 +161,8 @@ print(peaks_df_corr)
 # # # When you document this project, mention that you chose Simpson's Rule specifically for higher integration accuracy on curvilinear signal data. This shows you aren't just copy-pasting code, but thinking about the underlying mathematics of the analytical chemistry you are automating.
 
 
-# ax.set_xlim(xmin=0, xmax=20000)
-# ax.set_ylim(ymin=0, ymax = 1500)
+ax.set_xlim(xmin=-500, xmax=23000)
+ax.set_ylim(ymin=0, ymax = np.max(peaks_df[peaks_df['peak_center'] == 75]['peak_height']))
 # # ax.set_xscale('log')
 # # ax.set_yscale('log')
 
@@ -170,5 +195,5 @@ print(peaks_df_corr)
 # # editor.show()
 
 
-# plt.show()
+plt.show()
 
