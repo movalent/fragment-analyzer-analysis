@@ -1,41 +1,52 @@
-# fig, ax = plt.subplots()
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.integrate import simpson
 
-# ax.plot(df_raw['Size (bp)'], df_raw[sample], color='black', lw=1)
-# ax.scatter(peaks_df['peak_center'], peaks_df['peak_height'], color='red')
+def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None:
 
+    df_signal = df_input.copy()
+    df_peaks = peaks.copy()
+    # print('=================== Data ===================\n', df_signal)
+    # print('=================== Peaks ===================\n', df_peaks)
 
-# # integration
-# areas = []
-# for i in range(len(peaks)):
-#     start_idx = int(peak_start[i])
-#     end_idx = int(peak_end[i])
+    fig, ax = plt.subplots()
 
-#     peak_area = int(simpson(df_filtered[sample].iloc[start_idx:end_idx]))
+    # Visualize detected peaks maximas
+    ax.scatter(df_peaks['peak_center'], df_peaks['peak_height'], color='red')
 
-#     areas.append(peak_area)
+    # Visualize traces
+    ax.plot(df_signal['Size (bp)'], df_signal[sample], color='black', lw=1)
 
-#     ax.fill_between(df_filtered['Size (bp)'].iloc[start_idx:end_idx],
-#                    df_filtered[sample].iloc[start_idx:end_idx],
-#                    alpha=0.3
-#                    )
+    # Color the graph by detected peak boundaries
+    areas = []
+    for idx, row in df_peaks.iterrows():
+        start_idx = float(row['peak_start'])
+        end_idx = float(row['peak_end'])
 
-# # print('=================== Areas ===================\n')
-# # print(areas)
+        x_range = df_signal[df_signal['Size (bp)'].between(start_idx, end_idx)]['Size (bp)']
+        y_range = df_signal[df_signal['Size (bp)'].between(start_idx, end_idx)][sample]
 
-# # sum_areas = sum(areas)
+        ax.fill_between(
+            x_range,
+            y_range,
+            alpha=0.3
+            )
 
-# # area_perc = [round(x/sum_areas*100, 2) for x in areas]
-# # print(area_perc)
+        peak_area = int(simpson(y=list(y_range)))  # Truncating decimals are insignificant overally
+        areas.append(peak_area)
 
-# # # When you document this project, mention that you chose Simpson's Rule specifically for higher integration accuracy on curvilinear signal data. This shows you aren't just copy-pasting code, but thinking about the underlying mathematics of the analytical chemistry you are automating.
+    # Set the trace boundaries
+    ax.set_xlim(xmin=-10, xmax=23000)
+    ax.set_ylim(ymin=0, ymax = np.max(df_peaks[peaks['peak_center'] == 75]['peak_height']) + 100)
 
+    plt.xticks(rotation=90)
+    plt.show()
 
-# ax.set_xlim(xmin=-500, xmax=23000)
-# ax.set_ylim(ymin=0, ymax = np.max(peaks_df[peaks_df['peak_center'] == 75]['peak_height']))
-# # ax.set_xscale('log')
-# # ax.set_yscale('log')
-
-# plt.xticks(rotation=90)
+    # Calcualte % area
+    sum_areas = sum(areas)
+    area_perc = [round(x/sum_areas*100, 2) for x in areas]
+    print(area_perc)
 
 # peaks_main = pd.DataFrame({
 #     'peak_id': df_peaks.index,
@@ -44,15 +55,11 @@
 #     'end': df_filtered.iloc[properties['right_bases']]['Size (bp)'].values
 #     })
 
-# # print(peaks_main)
-
 # peaks_main = pd.DataFrame({
 #     'start': start_bp,
 #     'center': center_bp,
 #     'end': end_bp
 #     })
-
-# # print(peaks_main)
 
 # # peaks_main = peaks_main.astype({
 # #     "start": float,
@@ -62,6 +69,3 @@
 
 # # editor = PeakEditor(df_filtered['Size (bp)'], df_filtered[sample], peaks_main)
 # # editor.show()
-
-
-# plt.show()

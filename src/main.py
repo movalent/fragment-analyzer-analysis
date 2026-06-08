@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, peak_widths
-from scipy.integrate import simpson
 from pathlib import Path
 
 import paths, file_utils, preprocess_data, peaks, plot
@@ -26,7 +25,6 @@ import paths, file_utils, preprocess_data, peaks, plot
 # peak_start = peak_width_results[2]
 # peak_end = peak_width_results[3]
 
-
 def main() -> None:
 
     # Resolve paths
@@ -40,11 +38,10 @@ def main() -> None:
     # Detect peaks
     peaks_df, properties = peaks.find_peaks(raw_data, selected_sample)
 
-    print(peaks_df, properties)
-
     # Refine the peaks
 
     # Visualize the traces
+    plot.plot_trace(raw_data, peaks_df, selected_sample)
 
     # Confirm dbDNA, dsCircle, product position
 

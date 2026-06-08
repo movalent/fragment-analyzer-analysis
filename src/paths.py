@@ -10,7 +10,6 @@ class Paths():
     output: str
     config: str
 
-
 def resolve_paths() -> Paths:
 
     MAIN_DIR = Path(__file__).resolve().parent.parent
