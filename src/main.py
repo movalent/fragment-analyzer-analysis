@@ -1,12 +1,4 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.signal import find_peaks, peak_widths
-from pathlib import Path
-
 import paths, file_utils, preprocess_data, peaks, plot
-
-# from peak_adjustment import PeakEditor
 
 def main() -> None:
 

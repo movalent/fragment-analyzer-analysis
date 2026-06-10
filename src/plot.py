@@ -37,7 +37,7 @@ def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None
         areas.append(peak_area)
 
     # Set the trace boundaries
-    ax.set_xlim(xmin=-10, xmax=23000)
+    ax.set_xlim(xmin=-10, xmax=5000)
     ax.set_ylim(ymin=0, ymax = np.max(df_peaks[peaks['peak_center'] == 75]['peak_height']) + 100)
 
     plt.xticks(rotation=90)
@@ -46,7 +46,9 @@ def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None
     # Calcualte % area
     sum_areas = sum(areas)
     area_perc = [round(x/sum_areas*100, 2) for x in areas]
+
     print(area_perc)
+
 
 # peaks_main = pd.DataFrame({
 #     'peak_id': df_peaks.index,
