@@ -4,13 +4,19 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Paths():
     """
-    Resolves paths to input and output files
+    Container for file system paths used by the application.
     """
     input: str
     output: str
     config: str
 
 def resolve_paths() -> Paths:
+    """
+    esolve project directory paths relative to the project root.
+
+    Returns:
+        Paths: Paths to input, output, and configuration directories
+    """
 
     MAIN_DIR = Path(__file__).resolve().parent.parent
 

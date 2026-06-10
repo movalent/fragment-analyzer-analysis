@@ -12,11 +12,9 @@ def main() -> None:
 
     # Detect peaks
     peaks_df, properties = peaks.find_peaks(raw_data, selected_sample)
-    # print('====== Raw peaks\n', peaks_df)
 
     # Refine the peaks
     peaks_corr = peaks.adjust_peak_boundaries(raw_data, peaks_df, selected_sample)
-    # print('====== Corrected peaks\n', peaks_corr)
 
     # Visualize the traces
     plot.plot_trace(raw_data, peaks_corr, selected_sample)

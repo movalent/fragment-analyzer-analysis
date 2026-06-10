@@ -4,6 +4,21 @@ import scipy
 import numpy as np
 
 def find_peaks(input_df: pd.DataFrame, sample: str) -> tuple[pd.DataFrame, dict]:
+    """
+    Detect peaks in a selected sample trace.
+
+    Peaks are identified using `scipy.signal.find_peaks`
+
+    Args:
+        input_df (pd.DataFrame): DataFrame containing raw traces data.
+        sample (str): Name of the sample column to analyse.
+
+    Returns:
+        tuple[pd.DataFrame, dict]:
+            - pd.DataFrame: Table containing peak information, including
+              indices, heights, and start/center/end positions in base pairs.
+            - Dictionary of peak properties returned by scipy.signal.find_peaks.
+    """
 
     df = input_df.copy()
 
@@ -25,7 +40,21 @@ def find_peaks(input_df: pd.DataFrame, sample: str) -> tuple[pd.DataFrame, dict]
 
     return peak_df, properties
 
-def adjust_peak_boundaries(df_input, df_peaks, sample):
+def adjust_peak_boundaries(df_input: pd.DataFrame, df_peaks: list, sample: str) -> pd.DataFrame:
+    """
+    Adjusts the peak start and end when overlaping peaks are detected.
+
+    Args:
+        df_input (pd.DataFrame): DataFrame containing raw traces data
+        df_peaks (list): List containing detected peaks indexes
+        sample (str): Name of currently procesed sample
+
+    Returns:
+        pd.DataFrame: pd.DataFrame with adjusted peak boundaries.
+
+    Notes:
+        Function finds minimum value between two neighbouring peaks and adjust the boundaries accordingly.
+    """
 
     df_p = df_peaks.copy()
 
