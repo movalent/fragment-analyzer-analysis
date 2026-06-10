@@ -2,6 +2,7 @@ import pandas as pd
 
 # from scipy.signal import find_peaks, peak_widths
 import scipy
+import numpy as np
 
 def find_peaks(input_df: pd.DataFrame, sample: str) -> tuple[pd.DataFrame, dict]:
 
@@ -18,65 +19,43 @@ def find_peaks(input_df: pd.DataFrame, sample: str) -> tuple[pd.DataFrame, dict]
         'peak_height':  df[sample].iloc[peaks],
         'peak_start':   df['Size (bp)'].iloc[properties['left_bases']].values,
         'peak_center':  df['Size (bp)'].iloc[peaks],
-        'peak_end':     df['Size (bp)'].iloc[properties['right_bases']].values
+        'peak_end':     df['Size (bp)'].iloc[properties['right_bases']].values,
+        'peak_start_idx': properties['left_bases'],
+        'peak_end_idx':   properties['right_bases']
         })
-
-    # Keep only peaks that are within the ladder range, e.g. 75 - 20 000 bp
-    peak_df = peak_df[(peak_df['peak_center'] > 74) & (peak_df['peak_center'] < 20001)]
 
     return peak_df, properties
 
-def find_valleys(df_input, df_peaks, sample):
-    valleys = []
+def adjust_peak_boundaries(df_input, df_peaks, sample):
 
-    y_signal = df_input[sample].values
-    x_size = df_input['Size (bp)'].values
+    df_p = df_peaks.copy()
+
+    # Remove lower and upper markers from data
+    y_signal = df_input[sample]
 
     # Find valleys between peaks
-    for i in range(len(df_peaks) - 1):
-        left = df_peaks['peak_end'].iloc[i]
-        right = df_peaks['peak_start'].iloc[i + 1]
+    for i in range(len(df_p) - 1):
+        curr_peak_end = df_p['peak_end'].iloc[i]
+        next_peak_start = df_p['peak_start'].iloc[i + 1]
 
-        left_idx = np.searchsorted(x_size, left)
-        right_idx = np.searchsorted(x_size, right)
+        curr_peak_centre = df_p['peak_index'].iloc[i]
+        next_peak_centre = df_p['peak_index'].iloc[i + 1]
 
-        if right_idx <= left_idx:
-            valley_index = left_idx
-        else:
-            segment = y_signal[left_idx : right_idx]
-            valley_relative = np.argmin(segment)
-            valley_index = left_idx + valley_relative
+        curr_peak_idx = df_p.iloc[i]['peak_index']
+        next_peak_idx = df_p.iloc[i + 1]['peak_index']
+
+        if curr_peak_end > next_peak_start:
+
+            segment = y_signal.iloc[curr_peak_centre : next_peak_centre + 1]  # +1 to account for not inclusive slicing index
+
+            valley_idx = np.argmin(segment) + curr_peak_centre  # valley is an offset from the 1st peak
+
+            df_p.at[curr_peak_idx, 'peak_end_idx'] = valley_idx
+            df_p.at[next_peak_idx, 'peak_start_idx'] = valley_idx
+
+            df_p.at[curr_peak_idx, 'peak_end'] = df_input.iloc[valley_idx]['Size (bp)']
+            df_p.at[next_peak_idx, 'peak_start'] = df_input.iloc[valley_idx]['Size (bp)']
+
+    return df_p
 
 
-        valleys.append(valley_index)
-
-    valleys = np.array(valleys)
-
-    # Define new peak boundaries
-    starts_corr = []
-    ends_corr = []
-    peaks_idx = df_peaks['peak_index'].values
-
-    for i in range(len(peaks_idx)):
-        if i == 0:
-            start = df_peaks['peak_start'].iloc[i]  # keep original
-        else:
-            start = x_size[valleys[i - 1]]  # valley before
-
-        if i == len(peaks_idx) - 1:
-            end = df_peaks['peak_end'].iloc[i]
-        else:
-            end = x_size[valleys[i]]
-
-        starts_corr.append(start)
-        ends_corr.append(end)
-
-    result = pd.DataFrame({
-        'peak_index':       peaks_idx,
-        'peak_height':      df_peaks['peak_height'].values,
-        'peak_start_corr':  starts_corr,
-        'peak_center_corr': x_size[peaks_idx],
-        'peak_end_corr':    ends_corr
-        })
-
-    return result, valleys

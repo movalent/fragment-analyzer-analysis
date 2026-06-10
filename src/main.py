@@ -8,23 +8,6 @@ import paths, file_utils, preprocess_data, peaks, plot
 
 # from peak_adjustment import PeakEditor
 
-# peaks_df_corr, valleys = find_valleys(df_raw, peaks_df, sample)
-
-# print(peaks_df_corr)
-
-# df_peaks = df_filtered.iloc[peaks]
-
-
-# print('=================== Peaks properties ===================\n')
-# for key, value in properties.items():
-#     print(key, value)
-
-# # Peak area
-# peak_width_results = peak_widths(df_filtered[sample], peaks, rel_height=0.99)
-# widths = peak_width_results[0]
-# peak_start = peak_width_results[2]
-# peak_end = peak_width_results[3]
-
 def main() -> None:
 
     # Resolve paths
@@ -37,19 +20,22 @@ def main() -> None:
 
     # Detect peaks
     peaks_df, properties = peaks.find_peaks(raw_data, selected_sample)
+    # print('====== Raw peaks\n', peaks_df)
 
     # Refine the peaks
+    peaks_corr = peaks.adjust_peak_boundaries(raw_data, peaks_df, selected_sample)
+    # print('====== Corrected peaks\n', peaks_corr)
 
     # Visualize the traces
-    plot.plot_trace(raw_data, peaks_df, selected_sample)
+    plot.plot_trace(raw_data, peaks_corr, selected_sample)
 
     # Confirm dbDNA, dsCircle, product position
 
-    # Adjust the peak boundaries
+    # Manually adjust the peak boundaries
 
     # Calculate the peak percentages
 
-    # Genera the graphs
+    # Generate the graphs
 
     # Generate the peak summary tables
 
