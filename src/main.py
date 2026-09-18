@@ -9,17 +9,19 @@ def main() -> None:
     raw_data = file_utils.load_data(dir_paths)
 
     selected_sample = preprocess_data.select_sample(raw_data)
+    data_no_ladder = preprocess_data.remove_ladder_well(raw_data)
 
     # Detect peaks
-    peaks_df, properties = peaks.find_peaks(raw_data, selected_sample)
+    peaks_df, properties = peaks.find_peaks(data_no_ladder, selected_sample)
 
     # Refine the peaks
-    peaks_corr = peaks.adjust_peak_boundaries(raw_data, peaks_df, selected_sample)
+    peaks_corr = peaks.adjust_peak_boundaries(data_no_ladder, peaks_df, selected_sample)
 
     # Visualize the traces
-    plot.plot_trace(raw_data, peaks_corr, selected_sample)
+    plot.plot_trace(data_no_ladder, peaks_corr, selected_sample)
 
     # Confirm dbDNA, dsCircle, product position
+    ref_peaks = peaks.find_ref_points(raw_data)
 
     # Manually adjust the peak boundaries
 
@@ -29,8 +31,5 @@ def main() -> None:
 
     # Generate the peak summary tables
 
-
-
 if __name__ == '__main__':
     main()
-

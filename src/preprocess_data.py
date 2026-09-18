@@ -28,3 +28,10 @@ def select_sample(input_df: pd.DataFrame) -> str:
 
     sample_idx = int(input('> ')) - 1
     return sample_names[sample_idx]
+
+def remove_ladder_well(input_df: pd.DataFrame) -> pd.DataFrame:
+    """Return trace columns excluding the D12 size-ladder well."""
+
+    D12_WELL = 'D12'
+
+    return input_df[[col for col in input_df.columns if not str(col).startswith(f'{D12_WELL}:')]]

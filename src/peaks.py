@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 import scipy
 import numpy as np
@@ -85,5 +86,76 @@ def adjust_peak_boundaries(df_input: pd.DataFrame, df_peaks: list, sample: str) 
             df_p.at[next_peak_idx, 'peak_start'] = df_input.iloc[valley_idx]['Size (bp)']
 
     return df_p
+
+def find_ref_points(input_df: pd.DataFrame) -> dict[str, dict[str, int]]:
+    """
+    Find construct-specific dbDNA, dbDNA dimer, and dsCircle reference positions.
+    Technical replicate positions are averaged before being rounded to the nearest base pair.
+
+    The tallest detected peak in each dbDNA trace is selected as the main reference, and
+    peak within +/-10% of twice that position is optionally recorded as the dbDNA dimer.
+
+    Sample names must follow the format `A1: 210-185 dbDNA` or `A5: 210-185 T5 (dsC)`.
+
+    Args:
+        input_df (pd.DataFrame): DataFrame containing raw trace data. 
+
+    Returns:
+        dict[str, dict[str, int]]: Mapping of construct with its reference positions.
+
+    Raises:
+        ValueError: If a reference trace cannot be parsed or contains no detectable peaks.
+    """
+
+    reference_pattern = re.compile(
+        r'^[^:]+:\s+(?P<construct>\d{3}-\d{3})\s+(?P<reference>dbDNA|T5)'
+    )
+    reference_peaks: dict[str, dict[str, list[float]]] = {}
+
+    for sample in input_df.columns[1:]:
+        if 'dbDNA' not in sample and 'T5' not in sample:
+            continue
+
+        match = reference_pattern.search(sample)
+        if match is None:
+            raise ValueError(f'Could not parse reference sample name: {sample}')
+
+        construct = match.group('construct').strip()
+        reference = match.group('reference').strip()
+
+        peak_df, _ = find_peaks(input_df, sample)
+        if peak_df.empty:
+            raise ValueError(f'No detectable peaks found in reference sample: {sample}')
+
+        main_peak_index = peak_df['peak_height'].idxmax()
+        main_peak = float(peak_df.loc[main_peak_index, 'peak_center'])
+        reference_peaks.setdefault(construct, {}).setdefault(reference, []).append(float(main_peak))
+
+        # Search for dbDNA dimer peak if the current reference is dbDNA
+        if reference == 'dbDNA':
+            dimer_candidates = peak_df.drop(index=main_peak_index)
+            dimer_candidates = dimer_candidates[
+                dimer_candidates['peak_center'].between(
+                    main_peak * 2 * 0.9,
+                    main_peak * 2 * 1.1
+                    )
+                ]
+            if not dimer_candidates.empty:
+                dimer_peak = dimer_candidates.loc[
+                    dimer_candidates['peak_height'].idxmax(),
+                    'peak_center'
+                    ]
+                reference_peaks.setdefault(construct, {}).setdefault('dbDNA (x2)', []).append(float(dimer_peak))
+
+    if not reference_peaks:
+        raise ValueError('No dbDNA or dsCircle reference samples found')
+
+    return {
+        construct: {
+            marker: int(round(sum(positions) / len(positions)))
+            for marker, positions in markers.items()
+        }
+        for construct, markers in reference_peaks.items()
+    }
 
 
