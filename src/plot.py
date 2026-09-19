@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import simpson
-from matplotlib.widgets import RectangleSelector
+from matplotlib.widgets import RectangleSelector, Button
 import re
 
 def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None:
@@ -93,6 +93,15 @@ def interactive_peak_boundary_adjustment(
     LOW_MARKER_BOUNDARY = 80
     HIGH_MARKER_BOUNDARY = 19500
 
+    # Zoom control buttons
+    def zoom_to_5kb(event=None) -> None:
+        ax.set_xlim(0, 5000)
+        fig.canvas.draw_idle()
+
+    def reset_zoom(event=None) -> None:
+        ax.set_xlim(initial_xlim)
+        ax.set_ylim(initial_ylim)
+        fig.canvas.draw_idle()
 
     df_signal = df_input.copy()
     adjusted_peaks = df_peaks.copy().reset_index(drop=True)
@@ -125,9 +134,12 @@ def interactive_peak_boundary_adjustment(
         zorder=3
         )
 
-    # ax.set_xlim(0, HIGH_MARKER_BOUNDARY + 1000)
-    ax.set_xlim(0, 5000)
-    print(ref_points)
+    ax.set_xlim(0, HIGH_MARKER_BOUNDARY + 1000)
+    ax.set_ylim(0, 10000)
+
+    initial_xlim = ax.get_xlim()  # Default values for reset button
+    initial_ylim = ax.get_ylim()
+
     if ref_points is not None:
         sample_match = re.match(r'^[^:]+:\s+(?P<construct>\d{3}-\d{3})\s+', sample)
 
@@ -136,6 +148,7 @@ def interactive_peak_boundary_adjustment(
 
             if construct in ref_points:                
 
+                # TODO: refactor reference names, so they are not hard coded in plot.py and peaks.py
                 line_settings = {
                     'dbDNA': {'color': 'red', 'linestyle': '--'},
                     '2x dbDNA': {'color': 'darkred', 'linestyle': '--'},
@@ -147,7 +160,7 @@ def interactive_peak_boundary_adjustment(
                         continue
 
                     position = ref_points[construct][marker]
-                    print(position)
+
                     ax.axvline(
                         position,
                         color=settings['color'],
@@ -166,6 +179,17 @@ def interactive_peak_boundary_adjustment(
                         va='top'
                         )
 
+    # Button positioning
+    reset_axis = fig.add_axes([0.42, 0.03, 0.13, 0.06])
+    zoom_axis = fig.add_axes([0.56, 0.03, 0.13, 0.06])
+
+    # Butoon creation
+    reset_button = Button(reset_axis, 'Reset zoom')
+    zoom_button = Button(zoom_axis, '5kb zoom')
+
+    # Button actions
+    reset_button.on_clicked(reset_zoom)
+    zoom_button.on_clicked(zoom_to_5kb)
 
     plt.show()
 
