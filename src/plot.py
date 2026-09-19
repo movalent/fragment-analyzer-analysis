@@ -103,6 +103,23 @@ def interactive_peak_boundary_adjustment(
         ax.set_ylim(initial_ylim)
         fig.canvas.draw_idle()
 
+    def zoom_with_scroll(event) -> None:
+        if event.inaxes is not ax or event.xdata is None or event.ydata is None:
+            return
+
+        scale = 0.8 if event.button == 'up' else 1.25
+        current_xlim = ax.get_xlim()
+        current_ylim = ax.get_ylim()
+
+        x_left = event.xdata - (event.xdata - current_xlim[0]) * scale
+        x_right = event.xdata + (current_xlim[1] - event.xdata) * scale
+        y_bottom = event.ydata - (event.ydata - current_ylim[0]) * scale
+        y_top = event.ydata + (current_ylim[1] - event.ydata) * scale
+
+        ax.set_xlim(x_left, x_right)
+        ax.set_ylim(y_bottom, y_top)
+        fig.canvas.draw_idle()
+
     df_signal = df_input.copy()
     adjusted_peaks = df_peaks.copy().reset_index(drop=True)
 
@@ -190,6 +207,8 @@ def interactive_peak_boundary_adjustment(
     # Button actions
     reset_button.on_clicked(reset_zoom)
     zoom_button.on_clicked(zoom_to_5kb)
+
+    fig.canvas.mpl_connect('scroll_event', zoom_with_scroll)
 
     plt.show()
 
