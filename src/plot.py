@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import simpson
+from matplotlib.widgets import RectangleSelector
+import re
 
 def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None:
     """
@@ -22,8 +24,7 @@ def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None
 
     df_signal = df_input.copy()
     df_peaks = peaks.copy()
-    # print('=================== Data ===================\n', df_signal)
-    # print('=================== Peaks ===================\n', df_peaks)
+
 
     fig, ax = plt.subplots()
 
@@ -63,3 +64,112 @@ def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None
     area_perc = [round(x/sum_areas*100, 2) for x in areas]
 
     print(area_perc)
+
+def interactive_peak_boundary_adjustment(
+        df_input: pd.DataFrame,
+        df_peaks: pd.DataFrame,
+        sample: str,
+        ref_points: dict[str, dict[str, int]] | None = None
+        ) -> pd.DataFrame:
+
+    """
+    Interactively adjust peak boundaries for a selected trace.
+    - click inside peak boundary activates it, clicking and dragging moves the boundary
+    - click outside peak boundary triggers rectangular zooming
+    - right click 
+    - pressing `a` accepts the changes and closes the editor
+    - pressing `d` deletes active peak
+
+    Args:
+        df_input (pd.DataFrame): DataFrame containing the raw traces data.
+        df_peaks (pd.DataFrame): DataFrame containing the peaks location information.
+        sample (str): Name of the sample column to plot.
+        ref_points (dict[str, dict[str, int]] | None): Optional reference points for dbDNA and dsCircle.
+        
+    Returns:
+        pd.DataFrame: Updated DataFrame with adjusted peak boundaries.
+    """
+
+    LOW_MARKER_BOUNDARY = 80
+    HIGH_MARKER_BOUNDARY = 19500
+
+
+    df_signal = df_input.copy()
+    adjusted_peaks = df_peaks.copy().reset_index(drop=True)
+
+    adjusted_peaks['peak_start'] = adjusted_peaks['peak_start'].astype(float)
+    adjusted_peaks['peak_end'] = adjusted_peaks['peak_end'].astype(float)
+
+    x_values = df_signal['Size (bp)'].astype(float)
+    y_values = df_signal[sample].astype(float)
+
+    fig, ax = plt.subplots()
+
+    fig.subplots_adjust(bottom=0.16) # Place for buttons
+
+    ax.plot(x_values, y_values, color='black', lw=1)
+    ax.set_xlabel('Size (bp)')
+    ax.set_ylabel('Signal intensity')
+
+    peaks_no_markers_mask = (
+        (adjusted_peaks['peak_center'] > LOW_MARKER_BOUNDARY) &
+        (adjusted_peaks['peak_center'] <= HIGH_MARKER_BOUNDARY)
+        )
+    peaks_no_markers = adjusted_peaks[peaks_no_markers_mask]
+
+    # Visual aid for detected peaks
+    ax.scatter(
+        peaks_no_markers['peak_center'],
+        peaks_no_markers['peak_height'],
+        color='black',
+        zorder=3
+        )
+
+    # ax.set_xlim(0, HIGH_MARKER_BOUNDARY + 1000)
+    ax.set_xlim(0, 5000)
+    print(ref_points)
+    if ref_points is not None:
+        sample_match = re.match(r'^[^:]+:\s+(?P<construct>\d{3}-\d{3})\s+', sample)
+
+        if sample_match is not None:
+            construct = sample_match.group('construct').strip()
+
+            if construct in ref_points:                
+
+                line_settings = {
+                    'dbDNA': {'color': 'red', 'linestyle': '--'},
+                    '2x dbDNA': {'color': 'darkred', 'linestyle': '--'},
+                    'T5': {'color': 'blue', 'linestyle': '--'}
+                }
+
+                for marker, settings in line_settings.items():
+                    if marker not in ref_points[construct]:
+                        continue
+
+                    position = ref_points[construct][marker]
+                    print(position)
+                    ax.axvline(
+                        position,
+                        color=settings['color'],
+                        ls=settings['linestyle'],
+                        alpha=0.3
+                    )
+
+                    ax.annotate(
+                        marker,
+                        xy=(position, 0.98),
+                        xycoords=('data', 'axes fraction'),
+                        xytext=(2, 0),
+                        textcoords='offset points',
+                        color=settings['color'],
+                        ha='left',
+                        va='top'
+                        )
+
+
+    plt.show()
+
+
+
+
+

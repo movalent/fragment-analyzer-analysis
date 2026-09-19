@@ -15,18 +15,18 @@ def main() -> None:
     peaks_df, properties = peaks.find_peaks(data_no_ladder, selected_sample)
 
     # Refine the peaks
-    peaks_corr = peaks.adjust_peak_boundaries(data_no_ladder, peaks_df, selected_sample)
+    peaks_corr = peaks.auto_adjust_peak_boundaries(data_no_ladder, peaks_df, selected_sample)
 
     # Visualize the traces
-    plot.plot_trace(data_no_ladder, peaks_corr, selected_sample)
+    # plot.plot_trace(data_no_ladder, peaks_corr, selected_sample)
 
     # Confirm dbDNA, dsCircle, product position
     ref_peaks = peaks.find_ref_points(data_no_ladder)
 
-    file_utils.save_adjusted_peaks(dir_paths, selected_sample, peaks_corr)
+    # file_utils.save_adjusted_peaks(dir_paths, selected_sample, peaks_corr)
 
     # Manually adjust the peak boundaries
-
+    plot.interactive_peak_boundary_adjustment(data_no_ladder, peaks_corr, selected_sample, ref_peaks)
     # Calculate the peak percentages
 
     # Generate the graphs

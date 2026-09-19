@@ -41,7 +41,7 @@ def find_peaks(input_df: pd.DataFrame, sample: str) -> tuple[pd.DataFrame, dict]
 
     return peak_df, properties
 
-def adjust_peak_boundaries(df_input: pd.DataFrame, df_peaks: list, sample: str) -> pd.DataFrame:
+def auto_adjust_peak_boundaries(df_input: pd.DataFrame, df_peaks: list, sample: str) -> pd.DataFrame:
     """
     Adjusts the peak start and end when overlaping peaks are detected.
 
@@ -107,6 +107,9 @@ def find_ref_points(input_df: pd.DataFrame) -> dict[str, dict[str, int]]:
         ValueError: If a reference trace cannot be parsed or contains no detectable peaks.
     """
 
+    LOW_MARKER_BOUNDARY = 80
+    HIGH_MARKER_BOUNDARY = 19500
+
     reference_pattern = re.compile(
         r'^[^:]+:\s+(?P<construct>\d{3}-\d{3})\s+(?P<reference>dbDNA|T5)'
     )
@@ -127,8 +130,14 @@ def find_ref_points(input_df: pd.DataFrame) -> dict[str, dict[str, int]]:
         if peak_df.empty:
             raise ValueError(f'No detectable peaks found in reference sample: {sample}')
 
-        main_peak_index = peak_df['peak_height'].idxmax()
-        main_peak = float(peak_df.loc[main_peak_index, 'peak_center'])
+        peaks_no_markers_mask = (
+            (peak_df['peak_center'] > LOW_MARKER_BOUNDARY) &
+            (peak_df['peak_center'] <= HIGH_MARKER_BOUNDARY)
+            )
+        peaks_no_markers = peak_df[peaks_no_markers_mask]
+
+        main_peak_index = peaks_no_markers['peak_height'].idxmax()
+        main_peak = float(peaks_no_markers.loc[main_peak_index, 'peak_center'])
         reference_peaks.setdefault(construct, {}).setdefault(reference, []).append(float(main_peak))
 
         # Search for dbDNA dimer peak if the current reference is dbDNA
@@ -145,7 +154,7 @@ def find_ref_points(input_df: pd.DataFrame) -> dict[str, dict[str, int]]:
                     dimer_candidates['peak_height'].idxmax(),
                     'peak_center'
                     ]
-                reference_peaks.setdefault(construct, {}).setdefault('dbDNA (x2)', []).append(float(dimer_peak))
+                reference_peaks.setdefault(construct, {}).setdefault('2x dbDNA', []).append(float(dimer_peak))
 
     if not reference_peaks:
         raise ValueError('No dbDNA or dsCircle reference samples found')
