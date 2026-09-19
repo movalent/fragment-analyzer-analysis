@@ -21,7 +21,9 @@ def main() -> None:
     plot.plot_trace(data_no_ladder, peaks_corr, selected_sample)
 
     # Confirm dbDNA, dsCircle, product position
-    ref_peaks = peaks.find_ref_points(raw_data)
+    ref_peaks = peaks.find_ref_points(data_no_ladder)
+
+    file_utils.save_adjusted_peaks(dir_paths, selected_sample, peaks_corr)
 
     # Manually adjust the peak boundaries
 
