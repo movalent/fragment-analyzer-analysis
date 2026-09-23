@@ -167,4 +167,54 @@ def find_ref_points(input_df: pd.DataFrame) -> dict[str, dict[str, int]]:
         for construct, markers in reference_peaks.items()
     }
 
+def calculate_peak_areas(
+        df_input: pd.DataFrame,
+        df_peaks: pd.DataFrame,
+        sample: str,
+        ref_points: dict[str, dict[str, int]] | None = None
+        ) -> pd.DataFrame:
+    """
+    Calculate peakareas and percentages for a given sample trace.
 
+    Args:
+        df_input (pd.DataFrame): DataFrame containing raw trace data.
+        df_peaks (pd.DataFrame): DataFrame containing detected peak information.
+        sample (str): Name of the sample column to analyze.
+        ref_points (dict[str, dict[str, int]] | None): Optional reference points for dbDNA and dsCircle.
+
+    Returns:
+        pd.DataFrame: Updated DataFrame with calculated peak areas and percentages.
+    """
+
+    peaks_table = df_peaks.copy()
+    x_values = df_input['Size (bp)'].astype(float)
+    y_values = df_input[sample].astype(float)
+
+    peaks_table['peak_area'] = 0
+    peaks_table['peak_percentage'] = 0
+    peaks_table['peak_name'] = 'N/A'
+
+    areas = []
+
+    for _, row in peaks_table.iterrows():
+        slice_x =   (
+            (x_values >= float(row['peak_start']))
+            & (x_values <= float(row['peak_end']))
+            )
+
+        if slice_x.sum() < 2:  # if there are less than 2 points in slice, we cant calculate area
+            areas.append(0)
+        else:
+            area = float(scipy.integrate.simpson(y_values[slice_x], x_values[slice_x]))
+            areas.append(area)
+
+    total_area = sum(areas)
+
+    peaks_table['peak_area'] = areas
+    peaks_table['peak_percentage'] = [
+        area / total_area * 100 if total_area else 0 for area in areas
+        ]
+
+    return peaks_table
+
+        

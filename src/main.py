@@ -27,7 +27,9 @@ def main() -> None:
 
     # Manually adjust the peak boundaries
     plot.interactive_peak_boundary_adjustment(data_no_ladder, peaks_corr, selected_sample, ref_peaks)
+
     # Calculate the peak percentages
+    peaks_areas = peaks.calculate_peak_areas(data_no_ladder, peaks_corr, selected_sample, ref_peaks)
 
     # Generate the graphs
 
