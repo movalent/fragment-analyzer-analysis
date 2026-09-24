@@ -25,11 +25,11 @@ def main() -> None:
 
     # file_utils.save_adjusted_peaks(dir_paths, selected_sample, peaks_corr)
 
-    # Manually adjust the peak boundaries
-    plot.interactive_peak_boundary_adjustment(data_no_ladder, peaks_corr, selected_sample, ref_peaks)
-
     # Calculate the peak percentages
     peaks_areas = peaks.calculate_peak_areas(data_no_ladder, peaks_corr, selected_sample, ref_peaks)
+
+    # Manually adjust the peak boundaries
+    plot.interactive_peak_boundary_adjustment(data_no_ladder, peaks_areas, selected_sample, ref_peaks)
 
     # Generate the graphs
 

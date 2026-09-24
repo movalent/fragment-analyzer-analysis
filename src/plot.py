@@ -5,6 +5,8 @@ from scipy.integrate import simpson
 from matplotlib.widgets import RectangleSelector, Button
 import re
 
+import peaks
+
 def plot_trace(df_input: pd.DataFrame, peaks: pd.DataFrame, sample: str) -> None:
     """
     Plot a sample trace with detected peaks and their integration regions.
@@ -209,6 +211,29 @@ def interactive_peak_boundary_adjustment(
     zoom_button.on_clicked(zoom_to_5kb)
 
     fig.canvas.mpl_connect('scroll_event', zoom_with_scroll)
+
+    table_content = []
+    for row_no, (_, row) in enumerate(adjusted_peaks.iterrows()):
+
+        table_content.append(
+            [
+                str(row_no + 1),
+                f'{round(row['peak_center'], 0)}',
+                row['peak_percentage']
+            ]
+            )
+
+    if table_content:
+        ax.table(
+            cellText=table_content,
+            colLabels=['Peak', 'Size (bp)', 'Area (%)'],
+            cellLoc='center',
+            loc='upper right',
+            bbox=[0.72, 0.72, 0.28, 0.28],
+
+        )
+
+    # redraw()
 
     plt.show()
 
